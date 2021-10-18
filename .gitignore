@@ -1,0 +1,5 @@
+# macOS Files
+.DS_Store
+.ipynb_checkpoints
+.env
+Master_Data_File.csv
