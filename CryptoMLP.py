@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class CryptoMLP(nn.Module):
 
-	def __init__(self, inputSize, numClass, hiddenLayers):
+	def __init__(self, inputSize, numClass, hiddenLayers = [3,3]):
 		super(CryptoMLP, self).__init__()
 
 		self.input_size = inputSize
@@ -15,6 +15,7 @@ class CryptoMLP(nn.Module):
 		self.lrelu = nn.LeakyReLU()
 		self.output = nn.Linear(self.hidden_size[-1], self.output_size)
 
+		# define hidden layers
 		self.hidden = nn.ModuleList()
 		for i in range(len(hiddenLayers) - 1):
 			self.hidden.append(nn.Linear(self.hidden_size[i], self.hidden_size[i+1]))
