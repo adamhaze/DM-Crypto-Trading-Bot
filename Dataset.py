@@ -34,7 +34,7 @@ def generate_label(df, prevClose):
 
 class CryptoDataset(Dataset):
 
-	def __init__(self, dataPath, timeframe, indicators, train=False, live=False):
+	def __init__(self, dataPath, timeframe, indicators, trainTestSplit, seed, train=False, live=False):
 
 		self.train = train
 		self.live = live
@@ -72,7 +72,16 @@ class CryptoDataset(Dataset):
 
 		# TODO: add indicators to features and indicator values to candlestick_data above
 		features = ['label','Open','High','Low','Close']
-		self.dataFrame = pd.DataFrame(data_array, columns = features)
+		df = pd.DataFrame(data_array, columns = features)
+
+		# train / test splitting
+		np.random.seed(seed)
+		mask = np.random.rand(len(df)) < trainTestSplit
+		if self.train:
+			self.dataFrame = df[mask]
+		else:
+			self.dataFrame = df[~mask]
+			
 
 
 	def __len__(self):
