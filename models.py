@@ -78,6 +78,7 @@ class CryptoRNN(nn.Module):
     
     def init_hidden(self, batch_size):
         # This method generates the first hidden state of zeros which we'll use in the forward pass
+        device=0
         hidden = torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device)
          # We'll send the tensor holding the hidden state to the device we specified earlier as well
         return hidden
