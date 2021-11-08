@@ -45,20 +45,22 @@ https://blog.floydhub.com/a-beginners-guide-on-recurrent-neural-networks-with-py
 
 GitHub: https://github.com/gabrielloye/RNN-walkthrough/blob/master/main.ipynb
 """
-
+# device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class CryptoRNN(nn.Module):
-    def __init__(self, inputSize, outputSize, hiddenDim, nLayers = 1):
+    def __init__(self, input_size, hidden_size, num_layers = 1, num_classes = 3):
         super(CryptoRNN, self).__init__()
 
         # model parameters
-        self.hidden_dim = hiddenDim
-        self.n_layers = nLayers
-        self.input_size = inputSize
-        self.output_size = outputSize
-
+        self.hidden_size = hidden_size
+        self.n_layers = num_layers
+        self.n_classes = num_classes
+        self.input_size = input_size
+        
         # Defining the layers
-        self.rnn = nn.RNN(self.input_size, self.hidden_dim, self.n_layers, batch_first=True)   
-        self.fc = nn.Linear(self.hidden_dim, self.output_size)
+        # X -> (batch_size, sequence_length, input_size) --- shape of input X
+        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)   
+        self.fc = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
         
@@ -71,14 +73,12 @@ class CryptoRNN(nn.Module):
         out, hidden = self.rnn(x, hidden)
         
         # Reshaping the outputs such that it can be fit into the fully connected layer
-        out = out.contiguous().view(-1, self.hidden_dim)
+        out = out.contiguous().view(-1, self.hidden_size)
         out = self.fc(out)
         
         return out, hidden
     
     def init_hidden(self, batch_size):
-        # This method generates the first hidden state of zeros which we'll use in the forward pass
-        device=0
-        hidden = torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(device)
-         # We'll send the tensor holding the hidden state to the device we specified earlier as well
+        # initialize tensor of 0's for first hidden state
+        hidden = torch.zeros(self.n_layers, batch_size, self.hidden_size).to(device)
         return hidden
