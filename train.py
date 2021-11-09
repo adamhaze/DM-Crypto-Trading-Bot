@@ -24,7 +24,7 @@ learning_rate = 1e-4
 num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
 
-input_size = 4 + len(indicators) # number of features
+input_size = 5 + len(indicators) # number of features
 hidden_size = 150
 
 
@@ -68,3 +68,31 @@ model = CryptoRNN.CryptoRNN(input_size, hidden_size, num_layers, num_classes)
 # Initialize loss critereron and gradient descent optimizer
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=learning_rate)
+
+print('~~~~~~~~~~~~ Training Model ~~~~~~~~~~~~')
+train_losses, valid_losses = [],[]
+
+for epoch in num_epochs:
+
+    print("EPOCH: {} ".format(epoch),end='',flush=True)
+
+    sum_loss = 0
+    for batch, (X,Y) in enumerate(train_loader):
+
+        X,Y = X.to(device), Y.to(device)
+        X = torch.unsqueeze(X,1).float()
+
+        # Compute forward pass
+        Y_hat = model.forward(X)
+
+        # Calculate training loss
+        loss = criterion(Y_hat, Y)
+
+        # Perform backprop and zero gradient
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        sum_loss = sum_loss + criterion(Y_hat, Y)
+

@@ -44,12 +44,11 @@ class CryptoDataset(Dataset):
 
 		data_array = []
 		for fileNum, file in enumerate(data_files):
-			desired_cols = ['Unix Timestamp', 'Open','High','Low','Close']
-			data = pd.read_csv(file, header=1, usecols=desired_cols)[::-1]
+			desired_cols = ['Unix Timestamp', 'Open','High','Low','Close','Volume']
+			data = pd.read_csv(file, header=1, usecols=desired_cols)[::-1] # flips data upside down
 			num_time_chunks = int(data.shape[0] / timeframe)
 			
 			candlestick_data = []
-			# TODO: handle missing chunks of time
 			for i in range(num_time_chunks):
 				start = i * self.tf
 				end = start + self.tf
@@ -62,6 +61,8 @@ class CryptoDataset(Dataset):
 				candlestick_data.append(query['Low'].min())
 				# add final close price for timeframe
 				candlestick_data.append(query.iloc[-1,4])
+				# add volume
+				candlestick_data.append(query['Volume'].sum())
 				# add label for current timeframe
 				label = generate_label(data.iloc[start+self.tf:end+self.tf,:], query.iloc[-1,4])
 				candlestick_data.insert(0,label)
@@ -71,7 +72,7 @@ class CryptoDataset(Dataset):
 
 
 		# TODO: add indicators to features and indicator values to candlestick_data above
-		features = ['label','Open','High','Low','Close']
+		features = ['label','Open','High','Low','Close','Volume']
 		df = pd.DataFrame(data_array, columns = features)
 
 		# train / test splitting
