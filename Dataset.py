@@ -49,7 +49,6 @@ class CryptoDataset(Dataset):
 			desired_cols = ['Unix Timestamp', 'Open','High','Low','Close','Volume']
 			data = pd.read_csv(file, header=1, usecols=desired_cols)[::-1] # flips data upside down
 			num_time_chunks = int(data.shape[0] / timeframe)
-			num_time_chunks = 4
 			
 			for i in range(num_time_chunks):
 				candlestick_data = []

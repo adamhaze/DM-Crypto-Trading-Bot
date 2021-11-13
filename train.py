@@ -13,7 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ##
 ## Set all global parameters
 ##
-path = 'data/'
+path = 'data'
 timeframe = 10
 indicators = []
 randomSeed = 42 # better way to do this: random number between 1 and 1 mill to ensure no 2 runs have same seed?
@@ -46,6 +46,9 @@ valid_dataset = CryptoDataset(
     train = False
 )
 
+print('Training Data: {} time frames'.format(len(train_dataset)))
+print('Validation Data: {} time frames'.format(len(valid_dataset)))
+
 # TODO: print some info about the dataset
 
 print('~~~~~~~~~~~~ Initializing DataLoader ~~~~~~~~~~~~')
@@ -69,6 +72,7 @@ model = CryptoRNN.CryptoRNN(input_size, hidden_size, num_layers, num_classes)
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=learning_rate)
 
+"""
 print('~~~~~~~~~~~~ Training Model ~~~~~~~~~~~~')
 train_losses, valid_losses = [],[]
 
@@ -96,3 +100,4 @@ for epoch in num_epochs:
 
         sum_loss = sum_loss + criterion(Y_hat, Y)
 
+"""
