@@ -4,12 +4,12 @@ import torch
 from torch.utils.data import Dataset
 import glob
 
-desired_cols = ['Unix Timestamp', 'Date', 'Open','High','Low','Close']
-dat = pd.read_csv('data/gemini_BTCUSD_2021_1min.csv', header=1, usecols=desired_cols)[::-1]
-# dat = dat[::-1]
-# print(dat.iloc[0,2])
-d = dat.iloc[0:10,:]
-print(d.iloc[-1,5] - 5)
+# desired_cols = ['Unix Timestamp', 'Date', 'Open','High','Low','Close']
+# dat = pd.read_csv('data/gemini_BTCUSD_2021_1min.csv', header=1, usecols=desired_cols)[::-1]
+# # dat = dat[::-1]
+# # print(dat.iloc[0,2])
+# d = dat.iloc[0:10,:]
+# print(d.iloc[-1,5] - 5)
 
 # TODO: set % price change thresholds for BUY, SELL, and HOLD conditions -- these should depend on timeframe
 neutral_thresh = 1.0
@@ -40,16 +40,19 @@ class CryptoDataset(Dataset):
 		self.live = live
 		self.tf = timeframe
 		self.indicators = indicators
-		data_files = glob.glob(dataPath + '/*.csv')
+		# data_files = glob.glob(dataPath + '/*.csv')
+		data_files = dataPath + '/gemini_BTCUSD_2020_1min.csv'
+		data_files = [data_files]
 
 		data_array = []
 		for fileNum, file in enumerate(data_files):
 			desired_cols = ['Unix Timestamp', 'Open','High','Low','Close','Volume']
 			data = pd.read_csv(file, header=1, usecols=desired_cols)[::-1] # flips data upside down
 			num_time_chunks = int(data.shape[0] / timeframe)
+			num_time_chunks = 4
 			
-			candlestick_data = []
 			for i in range(num_time_chunks):
+				candlestick_data = []
 				start = i * self.tf
 				end = start + self.tf
 				query = data.iloc[start:end,:]
@@ -67,9 +70,8 @@ class CryptoDataset(Dataset):
 				label = generate_label(data.iloc[start+self.tf:end+self.tf,:], query.iloc[-1,4])
 				candlestick_data.insert(0,label)
 				
-			# append current timeframe data to main data array	
-			data_array.append(candlestick_data)
-
+				# append current timeframe data to main data array	
+				data_array.append(candlestick_data)
 
 		# TODO: add indicators to features and indicator values to candlestick_data above
 		features = ['label','Open','High','Low','Close','Volume']
