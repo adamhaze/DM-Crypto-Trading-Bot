@@ -66,7 +66,8 @@ valid_loader = DataLoader(
 
 
 print('~~~~~~~~~~~~ Initializing Model ~~~~~~~~~~~~')
-model = CryptoRNN.CryptoRNN(input_size, hidden_size, num_layers, num_classes)
+model = CryptoRNN(input_size, hidden_size, num_layers, num_classes)
+print(model)
 
 # Initialize loss critereron and gradient descent optimizer
 criterion = torch.nn.CrossEntropyLoss()

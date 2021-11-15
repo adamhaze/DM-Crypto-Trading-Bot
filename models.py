@@ -48,7 +48,9 @@ GitHub: https://github.com/gabrielloye/RNN-walkthrough/blob/master/main.ipynb
 """
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 class CryptoRNN(nn.Module):
+    
     def __init__(self, input_size, hidden_size, num_layers = 1, num_classes = 3):
         super(CryptoRNN, self).__init__()
 
