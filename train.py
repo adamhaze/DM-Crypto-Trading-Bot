@@ -25,7 +25,7 @@ num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
 
 input_size = 5 + len(indicators) # number of features
-hidden_size = 150
+hidden_size = 15
 
 
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
@@ -43,7 +43,8 @@ valid_dataset = CryptoDataset(
     indicators = indicators,
     trainTestSplit = 0.8,
     seed = randomSeed,
-    train = False
+    train = True,
+    valid = True
 )
 
 print('Training Data: {} time frames'.format(len(train_dataset)))
@@ -55,7 +56,7 @@ print('~~~~~~~~~~~~ Initializing DataLoader ~~~~~~~~~~~~')
 train_loader = DataLoader(
     train_dataset,
     batch_size=batch_size,
-    shuffle=True
+    shuffle=False
 )
 
 valid_loader = DataLoader(
@@ -66,18 +67,18 @@ valid_loader = DataLoader(
 
 
 print('~~~~~~~~~~~~ Initializing Model ~~~~~~~~~~~~')
-model = CryptoRNN(input_size, hidden_size, num_layers, num_classes)
+model = CryptoRNN(input_size, hidden_size, num_layers, num_classes).to(device)
 print(model)
 
 # Initialize loss critereron and gradient descent optimizer
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=learning_rate)
 
-"""
+
 print('~~~~~~~~~~~~ Training Model ~~~~~~~~~~~~')
 train_losses, valid_losses = [],[]
 
-for epoch in num_epochs:
+for epoch in range(num_epochs):
 
     print("EPOCH: {} ".format(epoch),end='',flush=True)
 
@@ -88,7 +89,7 @@ for epoch in num_epochs:
         X = torch.unsqueeze(X,1).float()
 
         # Compute forward pass
-        Y_hat = model.forward(X)
+        Y_hat = model.forward(X).to(device)
 
         # Calculate training loss
         loss = criterion(Y_hat, Y)
@@ -97,8 +98,25 @@ for epoch in num_epochs:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+        # optimizer.zero_grad()
 
         sum_loss = sum_loss + criterion(Y_hat, Y)
+    
+    train_losses.append(sum_loss.item()/batch)
 
-"""
+    #Valid
+    loss = 0
+    for batch, (X,Y) in enumerate(valid_loader):
+
+        X,Y = X.to(device),Y.to(device)
+        X = torch.unsqueeze(X,1).float()
+
+        # Compute forward pass
+        Y_hat = model.forward(X).to(device)
+
+        # Calculate training loss
+        loss = loss + criterion(Y_hat, Y)
+
+    valid_losses.append(loss.item()/batch)
+    print("\tTRAIN LOSS = {:.5f}\tVALID LOSS = {:.5f}".format(train_losses[-1],valid_losses[-1]))
+

@@ -79,7 +79,7 @@ class CryptoRNN(nn.Module):
         out = out.contiguous().view(-1, self.hidden_size)
         out = self.fc(out)
         
-        return out, hidden
+        return out
     
     def init_hidden(self, batch_size):
         # initialize tensor of 0's for first hidden state

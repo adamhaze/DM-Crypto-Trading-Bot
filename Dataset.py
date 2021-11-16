@@ -34,9 +34,10 @@ def generate_label(df, prevClose):
 
 class CryptoDataset(Dataset):
 
-	def __init__(self, dataPath, timeframe, indicators, trainTestSplit, seed, train=False, live=False):
+	def __init__(self, dataPath, timeframe, indicators, trainTestSplit, seed, train=False, valid=False, live=False):
 
 		self.train = train
+		self.valid = valid
 		self.live = live
 		self.tf = timeframe
 		self.indicators = indicators
@@ -79,10 +80,10 @@ class CryptoDataset(Dataset):
 		# train / test splitting
 		np.random.seed(seed)
 		mask = np.random.rand(len(df)) < trainTestSplit
-		if self.train:
-			self.dataFrame = df[mask]
-		else:
+		if self.valid:
 			self.dataFrame = df[~mask]
+		else:
+			self.dataFrame = df[mask]
 			
 
 
@@ -91,7 +92,7 @@ class CryptoDataset(Dataset):
 
 	def __getitem__(self, idx):
 
-		candlestick = self.dataFrame.iloc[idx,1:]
+		candlestick = np.array(self.dataFrame.iloc[idx,1:])
 		candlestick_tensor = torch.from_numpy(candlestick)
 
 		if self.train:
