@@ -62,7 +62,7 @@ class CryptoRNN(nn.Module):
         
         # Defining the layers
         # X -> (batch_size, sequence_length, input_size) --- shape of input X
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)   
+        self.rnn = nn.RNN(input_size, hidden_size, num_layers, nonlinearity='relu', batch_first=True)
         self.fc = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
@@ -76,7 +76,8 @@ class CryptoRNN(nn.Module):
         out, hidden = self.rnn(x, hidden)
         
         # Reshaping the outputs such that it can be fit into the fully connected layer
-        out = out.contiguous().view(-1, self.hidden_size)
+        # out = out.contiguous().view(-1, self.hidden_size)
+        out = out[:, -1, :]
         out = self.fc(out)
         
         return out
