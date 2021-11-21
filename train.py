@@ -41,7 +41,7 @@ randomSeed = 41 # better way to do this: random number between 1 and 1 mill to e
 trainTestSplit = 0.8
 
 batch_size = 128
-num_epochs = 100
+num_epochs = 10
 learning_rate = 1e-4
 num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
@@ -190,7 +190,7 @@ for epoch in range(num_epochs):
 
 # Save model after final training epoch
 model_save = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
-torch.save(model_save, 'rnn_result_v1')
+torch.save(model_save, 'rnn_result_v4')
 
 
 ##

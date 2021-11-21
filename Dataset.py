@@ -86,7 +86,7 @@ class CryptoDataset(Dataset):
 
 	def __getitem__(self, idx):
 
-		lag = 10
+		lag = 5
 		if idx < lag:
 			candlestick = np.array(self.dataFrame.iloc[idx:idx+lag,1:])
 			# label = np.array(self.dataFrame.iloc[idx:idx+lag,0])
