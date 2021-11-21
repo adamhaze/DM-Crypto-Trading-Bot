@@ -10,6 +10,7 @@ from Dataset import *
 from models import *
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import MinMaxScaler
+from indicator_funcs import *
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -48,25 +49,40 @@ num_layers = 2
 input_size = 5 + len(indicators) # number of features
 hidden_size = 10
 
+######################
 data = pd.read_csv('temp_data.csv', header=0).drop('Unnamed: 0',axis=1)
 scaler = MinMaxScaler(feature_range=(0, 1))
 data_normalized = scaler.fit_transform(np.array(data))
 data_array = []
-for i in range(len(data)):
+for i in range(26,36):
     if i == len(data)-1: break
     ls = [k for k in data_normalized[i,:]]
+    rsi = RSI(data.iloc[i-14:i,:])[-1]
+    ls.append(rsi)
+    ma5 = MA(data.iloc[i-5:i,:])
+    ma10 = MA(data.iloc[i-10:i,:])
+    ma15 = MA(data.iloc[i-15:i,:])
+    ma20 = MA(data.iloc[i-20:i,:])
+    ls.append(ma5)
+    ls.append(ma10)
+    ls.append(ma15)
+    ls.append(ma20)
+    # macd = MACD(data.iloc[i-26:i,:])
+
     label = generate_label(data.iloc[i+1,3],data.iloc[i,3])
     ls.insert(0,label)
     data_array.append(ls)
 
-features = ['label','Open','High','Low','Close','Volume']
+features = ['label','Open','High','Low','Close','Volume','RSI','MA_5','MA_10','MA_15','MA_20']
 df = pd.DataFrame(data_array, columns = features)
 print(df.head())
 mask = np.random.rand(len(df)) < trainTestSplit
 
 df2 = df[mask]
 valid_mask = np.random.rand(len(df2)) < 0.9
+######################
 
+"""
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
     dataPath = df2[valid_mask],
@@ -210,3 +226,4 @@ with torch.no_grad():
 
     acc = 100.0 * (n_correct / n_samples)
     print(f'Accuracy: {acc} %')
+"""
