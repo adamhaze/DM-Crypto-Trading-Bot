@@ -31,6 +31,9 @@ def RSI(array): #pass in date, and dataframe (array)
     avg_gain = avg_gain / len(array)
     avg_loss = avg_loss / len(array)
 
+    if avg_loss == 0.0 or avg_gain == 0.0:
+        return [0.0]
+
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1+rs))
     rsi_arr.append(rsi)

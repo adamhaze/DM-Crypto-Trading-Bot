@@ -42,7 +42,7 @@ randomSeed = 41 # better way to do this: random number between 1 and 1 mill to e
 trainTestSplit = 0.8
 
 batch_size = 128
-num_epochs = 10
+num_epochs = 15
 learning_rate = 1e-4
 num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
@@ -54,7 +54,7 @@ data = pd.read_csv('temp_data.csv', header=0).drop('Unnamed: 0',axis=1)
 scaler = MinMaxScaler(feature_range=(0, 1))
 data_normalized = scaler.fit_transform(np.array(data))
 data_array = []
-for i in range(26,36):
+for i in range(20,len(data)):
     if i == len(data)-1: break
     ls = [k for k in data_normalized[i,:]]
     rsi = RSI(data.iloc[i-14:i,:])[-1]
@@ -82,7 +82,7 @@ df2 = df[mask]
 valid_mask = np.random.rand(len(df2)) < 0.9
 ######################
 
-"""
+
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
     dataPath = df2[valid_mask],
@@ -206,7 +206,7 @@ for epoch in range(num_epochs):
 
 # Save model after final training epoch
 model_save = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
-torch.save(model_save, 'rnn_result_v4')
+torch.save(model_save, 'rnn_result_v5')
 
 
 ##
@@ -226,4 +226,3 @@ with torch.no_grad():
 
     acc = 100.0 * (n_correct / n_samples)
     print(f'Accuracy: {acc} %')
-"""
