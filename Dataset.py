@@ -44,12 +44,12 @@ def generate_label(nextClose, currClose):
 		return 2
 class CryptoDataset(Dataset):
 
-	def __init__(self, dataPath, timeframe, indicators, trainTestSplit, seed, valid=False, live=False):
+	def __init__(self, dataPath, timeframe, lag, valid=False, live=False):
 
 		self.valid = valid
 		self.live = live
 		self.tf = timeframe
-		self.indicators = indicators
+		self.lag = lag
 		# self.scaler = MinMaxScaler(feature_range=(0, 1))
 		# data = pd.read_csv(dataPath, header=0).drop('Unnamed: 0',axis=1)
 		# data_normalized = self.scaler.fit_transform(np.array(data))
@@ -86,17 +86,17 @@ class CryptoDataset(Dataset):
 
 	def __getitem__(self, idx):
 
-		lag = 5
-		if idx < lag:
-			candlestick = np.array(self.dataFrame.iloc[idx:idx+lag,1:])
-			# label = np.array(self.dataFrame.iloc[idx:idx+lag,0])
+		if idx < self.lag:
+			candlestick = np.array(self.dataFrame.iloc[idx:idx+self.lag,1:])
 		else:
-			candlestick = np.array(self.dataFrame.iloc[idx-lag:idx,1:])
-			# label = np.array(self.dataFrame.iloc[idx-lag:idx,0])
+			candlestick = np.array(self.dataFrame.iloc[idx-self.lag:idx,1:])
 		candlestick_tensor = torch.from_numpy(candlestick)
 
-		label = self.dataFrame.iloc[idx,0]
-		return (candlestick_tensor, label)
+		if self.live:
+			return candlestick_tensor
+		else:
+			label = self.dataFrame.iloc[idx,0]
+			return (candlestick_tensor, label)
 
 	def get_labels(self):
 		return self.dataFrame.iloc[:,0]
