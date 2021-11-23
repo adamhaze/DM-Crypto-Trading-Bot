@@ -65,17 +65,25 @@ def compute_ind_and_label(df):
 ## Set all global parameters
 ##
 path = 'data'
-timeframe = 10
+timeframe = 5
 trainTestSplit = 0.8
 num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
 input_size = 10 # number of features
 
-batch_size = 64
-num_epochs = 10
-learning_rate = 5e-4
-hidden_size = 10
-lag = 3
+batch_size = 32
+num_epochs = 100
+learning_rate = 5e-5
+hidden_size = 20
+lag = 10
+
+print('batch size: {}'.format(batch_size))
+print('epochs: {}'.format(num_epochs))
+print('lr: {}'.format(learning_rate))
+print('lag: {}'.format(lag))
+print('num_layers: {}'.format(num_layers))
+print('hidden_size: {}'.format(hidden_size))
+print('timeframe: {}'.format(timeframe))
 
 preprocess = True
 
@@ -83,12 +91,11 @@ preprocess = True
 data = pd.read_csv('temp_data_5min_allfeats.csv', header=0).drop('Unnamed: 0',axis=1)
 # scaler = MinMaxScaler(feature_range=(0, 1))
 # data_normalized = scaler.fit_transform(np.array(data))
-print(data.columns)
 if preprocess:
     df = data
 else:
     df = compute_ind_and_label(data)
-print(df.head())
+# print(df.head())
 
 
 mask = np.random.rand(len(df)) < trainTestSplit
