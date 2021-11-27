@@ -15,7 +15,7 @@ from indicator_funcs import *
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-neutral_thresh = 0.1
+neutral_thresh = 0.2
 def generate_label(nextClose, currClose):
 	# compute % change in price from previous close
 	change = nextClose - currClose
@@ -36,28 +36,30 @@ def compute_ind_and_label(df):
 
     dat = np.array(df)
     data_array = []
-    for i in range(20,len(dat)):
+    for i in range(50,len(dat)):
         if i == len(dat)-1: break
         ls = [k for k in dat[i,:]]
         rsi = RSI(df.iloc[i-14:i,:])[-1]
         ls.append(rsi)
         ma5 = MA(df.iloc[i-5:i,:])
-        ma10 = MA(df.iloc[i-10:i,:])
-        ma15 = MA(df.iloc[i-15:i,:])
+        ma8 = MA(df.iloc[i-8:i,:])
+        ma13 = MA(df.iloc[i-13:i,:])
         ma20 = MA(df.iloc[i-20:i,:])
+        ma50 = MA(df.iloc[i-50:i,:])
         ls.append(ma5)
-        ls.append(ma10)
-        ls.append(ma15)
+        ls.append(ma8)
+        ls.append(ma13)
         ls.append(ma20)
+        ls.append(ma50)
         # macd = MACD(dat.iloc[i-26:i,:])
 
         label = generate_label(df.iloc[i+1,3],df.iloc[i,3])
         ls.insert(0,label)
         data_array.append(ls)
 
-    features = ['label','Open','High','Low','Close','Volume','RSI','MA_5','MA_10','MA_15','MA_20']
+    features = ['label','Open','High','Low','Close','Volume','RSI','MA_5','MA_8','MA_13','MA_20','MA_50']
     df_final = pd.DataFrame(data_array, columns = features)
-    df_final.to_csv('temp_data_5min_allfeats.csv')
+    df_final.to_csv('temp_data_30min_allfeats.csv')
     return df_final
 
 
@@ -65,17 +67,17 @@ def compute_ind_and_label(df):
 ## Set all global parameters
 ##
 path = 'data'
-timeframe = 5
+timeframe = 30
 trainTestSplit = 0.8
 num_classes = 3 # buy / sell / hold -- more classes than this?
 num_layers = 2
-input_size = 10 # number of features
+input_size = 11 # number of features
 
-batch_size = 32
-num_epochs = 100
+batch_size = 16
+num_epochs = 500
 learning_rate = 5e-5
-hidden_size = 20
-lag = 10
+hidden_size = 22
+lag = 7
 
 print('batch size: {}'.format(batch_size))
 print('epochs: {}'.format(num_epochs))
@@ -84,20 +86,22 @@ print('lag: {}'.format(lag))
 print('num_layers: {}'.format(num_layers))
 print('hidden_size: {}'.format(hidden_size))
 print('timeframe: {}'.format(timeframe))
+print('neutral thresh: {}'.format(neutral_thresh))
 
+# bool for if data has been pre-processed (labels and indicators computed) or not 
 preprocess = True
 
 # data = pd.read_csv('temp_data_5min.csv', header=0).drop(['Unnamed: 0','label'],axis=1)
-data = pd.read_csv('temp_data_5min_allfeats.csv', header=0).drop('Unnamed: 0',axis=1)
+data = pd.read_csv('temp_data_30min_allfeats.csv', header=0).drop('Unnamed: 0',axis=1)
 # scaler = MinMaxScaler(feature_range=(0, 1))
 # data_normalized = scaler.fit_transform(np.array(data))
 if preprocess:
     df = data
 else:
     df = compute_ind_and_label(data)
-# print(df.head())
+print(df.head())
 
-
+np.random.seed(55)
 mask = np.random.rand(len(df)) < trainTestSplit
 
 df2 = df[mask]
