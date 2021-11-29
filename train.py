@@ -11,9 +11,17 @@ from models import *
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import MinMaxScaler
 from indicator_funcs import *
+import mysql.connector
+from mysql.connector import Error
+from sqlalchemy import create_engine
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# set output directory for model checkpoints and loss plots
+# output_directory = 'output/'
 
 neutral_thresh = 0.2
 def generate_label(nextClose, currClose):
@@ -62,76 +70,145 @@ def compute_ind_and_label(df):
     df_final.to_csv('temp_data_30min_allfeats.csv')
     return df_final
 
-
+def save_losses():
+    # plt.ylim([0,1])
+    plt.plot(train_losses, label='training loss')
+    plt.plot(valid_losses, label='validation loss')
+    plt.xlabel('Training epochs')
+    plt.ylabel('Cross-Entropy Loss')
+    plt.title('Training vs Validation Loss')
+    plt.legend()
+    plt.savefig('losses.png')
 ##
 ## Set all global parameters
 ##
-path = 'data'
-timeframe = 30
-trainTestSplit = 0.8
+trainTestSplit = 0.9
 num_classes = 3 # buy / sell / hold -- more classes than this?
-num_layers = 2
-input_size = 11 # number of features
+num_layers = 1
+input_size = 14 # number of features
 
-batch_size = 16
-num_epochs = 500
-learning_rate = 5e-5
-hidden_size = 22
-lag = 7
+batch_size = 1024
+num_epochs = 1
+learning_rate = 1e-1
+hidden_size = input_size
+
+# set individual lag values
+lag_1min = 5
+lag_5min = 0
+lag_30min = 1
+lag_1hr = 0
+lag_4hr = 0
+lag_12hr = 0
+lag_24hr = 0
 
 print('batch size: {}'.format(batch_size))
 print('epochs: {}'.format(num_epochs))
 print('lr: {}'.format(learning_rate))
-print('lag: {}'.format(lag))
 print('num_layers: {}'.format(num_layers))
 print('hidden_size: {}'.format(hidden_size))
-print('timeframe: {}'.format(timeframe))
 print('neutral thresh: {}'.format(neutral_thresh))
+print('1 minute lag: {}'.format(lag_1min))
+print('5 minute lag: {}'.format(lag_5min))
+print('30 minute lag: {}'.format(lag_30min))
+print('1 hour lag: {}'.format(lag_1hr))
+print('4 hour lag: {}'.format(lag_4hr))
+print('12 hour lag: {}'.format(lag_12hr))
+print('24 hour lag: {}'.format(lag_24hr))
 
-# bool for if data has been pre-processed (labels and indicators computed) or not 
-preprocess = True
+# Load ENV Files for SQL database
+env_vars = {} # or dict {}
+with open('src/env.txt') as f:
+    for line in f:
+        if line.startswith('#') or not line.strip():
+            continue
+        key, value = line.strip().split('=', 1)
+        env_vars[key]= value
+print(env_vars)
 
-# data = pd.read_csv('temp_data_5min.csv', header=0).drop(['Unnamed: 0','label'],axis=1)
-data = pd.read_csv('temp_data_30min_allfeats.csv', header=0).drop('Unnamed: 0',axis=1)
-# scaler = MinMaxScaler(feature_range=(0, 1))
-# data_normalized = scaler.fit_transform(np.array(data))
-if preprocess:
-    df = data
-else:
-    df = compute_ind_and_label(data)
-print(df.head())
+# create sqlalchemy engine
+engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
+                       .format(user=env_vars['USER'],
+                               pw=env_vars['PASSWORD'],
+                               host=env_vars['HOST'],
+                               db=env_vars['DB']))
+cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Volume']
 
-np.random.seed(55)
-mask = np.random.rand(len(df)) < trainTestSplit
+# pull timeframe data
+df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
+df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
 
-df2 = df[mask]
-valid_mask = np.random.rand(len(df2)) < 0.9
+print('1 minute: ', df_1min.columns)
+print('5 minute: ', df_5min.columns)
+
+# TODO: ************ LABELING ************
+labeled_data = df_5min # replace this with labeled data
+
+labeled_data = labeled_data.iloc[(864*675):,:] # 864 = 3 days
+mask = np.random.rand(len(labeled_data)) < trainTestSplit
+labeled_data_masked = labeled_data[mask]
+valid_mask = np.random.rand(len(labeled_data_masked)) < 0.9
 
 
-# df[~mask].to_csv('test_data.csv')
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
-    dataPath = df2[valid_mask],
-    timeframe = timeframe,
-    lag = lag
+    data_labeled = labeled_data_masked[valid_mask],
+    df_1min = df_1min,
+    df_5min = df_5min,
+    df_30min = df_30min,
+    df_1hr = df_1hr,
+    df_4hr = df_4hr,
+    df_12hr = df_12hr,
+    df_24hr = df_24hr,
+    lag_1min = lag_1min,
+    lag_5min = lag_5min,
+    lag_30min = lag_30min,
+    lag_1hr = lag_1hr,
+    lag_4hr = lag_4hr,
+    lag_12hr = lag_12hr,
+    lag_24hr = lag_24hr
 )
 valid_dataset = CryptoDataset(
-    dataPath = df2[~valid_mask],
-    timeframe = timeframe,
-    lag = lag,
-    valid = True
+    data_labeled = labeled_data_masked[~valid_mask],
+    df_1min = df_1min,
+    df_5min = df_5min,
+    df_30min = df_30min,
+    df_1hr = df_1hr,
+    df_4hr = df_4hr,
+    df_12hr = df_12hr,
+    df_24hr = df_24hr,
+    lag_1min = lag_1min,
+    lag_5min = lag_5min,
+    lag_30min = lag_30min,
+    lag_1hr = lag_1hr,
+    lag_4hr = lag_4hr,
+    lag_12hr = lag_12hr,
+    lag_24hr = lag_24hr
 )
-######
 test_dataset = CryptoDataset(
-    dataPath = df[~mask],
-    timeframe = timeframe,
-    lag = lag,
-    valid = False
+    data_labeled = labeled_data[~mask],
+    df_1min = df_1min,
+    df_5min = df_5min,
+    df_30min = df_30min,
+    df_1hr = df_1hr,
+    df_4hr = df_4hr,
+    df_12hr = df_12hr,
+    df_24hr = df_24hr,
+    lag_1min = lag_1min,
+    lag_5min = lag_5min,
+    lag_30min = lag_30min,
+    lag_1hr = lag_1hr,
+    lag_4hr = lag_4hr,
+    lag_12hr = lag_12hr,
+    lag_24hr = lag_24hr
 )
-######
 
 print('Training Data: {} time frames'.format(len(train_dataset)))
-# print('Validation Data: {} time frames'.format(len(valid_dataset)))
+print('Validation Data: {} time frames'.format(len(valid_dataset)))
 
 print('~~~~~~~~~~~~ Initializing DataLoader ~~~~~~~~~~~~')
 train_loader = DataLoader(
@@ -144,13 +221,11 @@ valid_loader = DataLoader(
     batch_size=1,
     shuffle=False
 )
-######
 test_loader = DataLoader(
     test_dataset,
     batch_size=batch_size,
     shuffle=False
 )
-######
 
 
 print('~~~~~~~~~~~~ Initializing Model ~~~~~~~~~~~~')
@@ -166,7 +241,6 @@ with warnings.catch_warnings():
     print('Class 0: {}'.format(y.count(0.0)))
     print('Class 1: {}'.format(y.count(1.0)))
     print('Class 2: {}'.format(y.count(2.0)))
-    # print(y)
 
     class_wts = compute_class_weight('balanced',np.unique(y),y)
     class_wts = torch.from_numpy(class_wts).float()
@@ -223,25 +297,48 @@ for epoch in range(num_epochs):
     print("\tTRAIN LOSS = {:.5f}\tVALID LOSS = {:.5f}".format(train_losses[-1],valid_losses[-1]))
     # print("\tTRAIN LOSS = {:.5f}".format(train_losses[-1]))
 
-# Save model after final training epoch
-model_save = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
-torch.save(model_save, 'rnn_result_v5')
+    if valid_losses[-1] == np.array(valid_losses).min():
+        checkpoint = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
+        # torch.save(checkpoint, 'checkpoint_epoch_{}'.format(epoch))
+        torch.save(checkpoint, 'rnn_best_losses_checkpoint')
+    else:
+        if len(valid_losses) > np.array(valid_losses).argmin() + 50:
+            print('No improvement in last 50 epochs... terminating...')
+            break
 
+# Save model after final training epoch
+# model_save = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
+# torch.save(model_save, 'rnn_result_v5')
+# save_losses()
 
 ##
 ## Testing
 ##
+y_true, y_pred = [],[]
 with torch.no_grad():
     n_correct = 0
     n_samples = 0
     for X, Y in test_loader:
+        y_true.append(Y.numpy())
         X,Y = X.to(device), Y.to(device)
         X = X.type(torch.float)
         outputs = model(X)
 
         _, predicted = torch.max(outputs.data, 1)
+        y_pred.append(predicted.numpy())
         n_samples += Y.size(0)
         n_correct += (predicted == Y).sum().item()
 
     acc = 100.0 * (n_correct / n_samples)
+    print('\n')
     print(f'Accuracy: {acc} %')
+
+y_true = np.concatenate(y_true, axis=0)
+y_pred = np.concatenate(y_pred, axis=0)
+
+print('\n')
+print('Confusion Matrix: ')
+cm = confusion_matrix(y_true,y_pred,labels=[0,1,2])
+df_cm = pd.DataFrame(cm, index=[0,1,2], columns=[0,1,2])
+print(df_cm)
+print('\n')
