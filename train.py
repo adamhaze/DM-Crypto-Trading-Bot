@@ -17,59 +17,6 @@ from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
-# device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# set output directory for model checkpoints and loss plots
-# output_directory = 'output/'
-
-neutral_thresh = 0.2
-def generate_label(nextClose, currClose):
-	# compute % change in price from previous close
-	change = nextClose - currClose
-	pct_change = (abs(change) / currClose) * 100
-
-	# conditons for BUY/SELL/HOLD based on % price change
-	if pct_change <= neutral_thresh:
-		# % change in price insignificant enough to indicate HOLD
-		return 1
-	elif change < 0:
-		# negative % change in price indicating SELL
-		return 0
-	else:
-		# positive % change in price indicating BUY
-		return 2
-
-def compute_ind_and_label(df):
-
-    dat = np.array(df)
-    data_array = []
-    for i in range(50,len(dat)):
-        if i == len(dat)-1: break
-        ls = [k for k in dat[i,:]]
-        rsi = RSI(df.iloc[i-14:i,:])[-1]
-        ls.append(rsi)
-        ma5 = MA(df.iloc[i-5:i,:])
-        ma8 = MA(df.iloc[i-8:i,:])
-        ma13 = MA(df.iloc[i-13:i,:])
-        ma20 = MA(df.iloc[i-20:i,:])
-        ma50 = MA(df.iloc[i-50:i,:])
-        ls.append(ma5)
-        ls.append(ma8)
-        ls.append(ma13)
-        ls.append(ma20)
-        ls.append(ma50)
-        # macd = MACD(dat.iloc[i-26:i,:])
-
-        label = generate_label(df.iloc[i+1,3],df.iloc[i,3])
-        ls.insert(0,label)
-        data_array.append(ls)
-
-    features = ['label','Open','High','Low','Close','Volume','RSI','MA_5','MA_8','MA_13','MA_20','MA_50']
-    df_final = pd.DataFrame(data_array, columns = features)
-    df_final.to_csv('temp_data_30min_allfeats.csv')
-    return df_final
-
 def save_losses():
     # plt.ylim([0,1])
     plt.plot(train_losses, label='training loss')
@@ -79,34 +26,42 @@ def save_losses():
     plt.title('Training vs Validation Loss')
     plt.legend()
     plt.savefig('losses.png')
+
+# device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# set output directory for model checkpoints and loss plots
+# output_directory = 'output/'
+
 ##
 ## Set all global parameters
 ##
 trainTestSplit = 0.9
 num_classes = 3 # buy / sell / hold -- more classes than this?
-num_layers = 1
+num_layers = 2
 input_size = 14 # number of features
 
-batch_size = 1024
+batch_size = 256
 num_epochs = 1
-learning_rate = 1e-1
-hidden_size = input_size
+learning_rate = 5e-5
+hidden_size = input_size*2
 
 # set individual lag values
-lag_1min = 5
+lag_1min = 10
 lag_5min = 0
-lag_30min = 1
+lag_30min = 4
 lag_1hr = 0
-lag_4hr = 0
-lag_12hr = 0
-lag_24hr = 0
+lag_4hr = 2
+lag_12hr = 1
+lag_24hr = 2
 
 print('batch size: {}'.format(batch_size))
 print('epochs: {}'.format(num_epochs))
 print('lr: {}'.format(learning_rate))
 print('num_layers: {}'.format(num_layers))
 print('hidden_size: {}'.format(hidden_size))
-print('neutral thresh: {}'.format(neutral_thresh))
+# print('neutral thresh: {}'.format(neutral_thresh))
+print('\n')
 print('1 minute lag: {}'.format(lag_1min))
 print('5 minute lag: {}'.format(lag_5min))
 print('30 minute lag: {}'.format(lag_30min))
@@ -142,8 +97,8 @@ df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='inde
 df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
 df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
 
-print('1 minute: ', df_1min.columns)
-print('5 minute: ', df_5min.columns)
+# print('1 minute: ', df_1min.columns)
+# print('5 minute: ', df_5min.columns)
 
 # TODO: ************ LABELING ************
 labeled_data = df_5min # replace this with labeled data
@@ -153,7 +108,7 @@ mask = np.random.rand(len(labeled_data)) < trainTestSplit
 labeled_data_masked = labeled_data[mask]
 valid_mask = np.random.rand(len(labeled_data_masked)) < 0.9
 
-
+print(labeled_data_masked.columns)
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
     data_labeled = labeled_data_masked[valid_mask],
@@ -209,6 +164,7 @@ test_dataset = CryptoDataset(
 
 print('Training Data: {} time frames'.format(len(train_dataset)))
 print('Validation Data: {} time frames'.format(len(valid_dataset)))
+print('Test Data: {} time frames'.format(len(test_dataset)))
 
 print('~~~~~~~~~~~~ Initializing DataLoader ~~~~~~~~~~~~')
 train_loader = DataLoader(
@@ -257,7 +213,7 @@ for epoch in range(num_epochs):
 
     sum_loss = 0
     for batch, (X,Y) in enumerate(train_loader):
-
+        print(X.shape)
         X,Y = X.to(device), Y.to(device)
         # X = torch.unsqueeze(X,1).float()
         X = X.type(torch.float)
