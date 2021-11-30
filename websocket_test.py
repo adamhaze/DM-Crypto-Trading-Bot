@@ -12,6 +12,13 @@ ws = create_connection("wss://ws.kraken.com/")
 ws.send('{"event":"subscribe", "pair":["XBT/USD"], "subscription":{"name":"ohlc"}}')
 
 # Infinite loop waiting for WebSocket data
+oneMinuteData = []
+fiveMinuteData = []
+thirtyMinuteData = []
+oneHourData = []
+fourHourData = []
+twelveHourData = []
+dayData = []
 intervalData = pd.DataFrame(columns = ['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'])
 intervalStart = time.time()
 while True:
