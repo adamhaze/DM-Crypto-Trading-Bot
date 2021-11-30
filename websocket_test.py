@@ -2,18 +2,30 @@
 import websocket
 import _thread
 import time
+import json
+import pandas as pd
 from websocket import create_connection
 
 # Connect to WebSocket API and subscribe to trade feed for XBT/USD and XRP/USD
 ws = create_connection("wss://ws.kraken.com/")
-ws.send('{"event":"subscribe", "subscription":{"name":"trade"}, "pair":["XBT/USD","XRP/USD"]}')
-
+# ws.send('{"event":"subscribe", "pair":["XBT/USD","XRP/USD"], "subscription":{"name":"ticker"}}')
+ws.send('{"event":"subscribe", "pair":["XBT/USD"], "subscription":{"name":"ohlc"}}')
 
 # Infinite loop waiting for WebSocket data
+intervalData = pd.DataFrame(columns = ['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'])
+intervalStart = time.time()
 while True:
-    print(ws.recv())
-
-
+    payload = json.loads(ws.recv())
+    print(type(payload))
+    if isinstance(payload, list):
+        print(payload[1])
+        intervalData = intervalData.append({'Date': payload[1][0], 'Symbol': payload[3], 'Open': payload[1][2], 'High': payload[1][3], 'Low': payload[1][4], 'Close': payload[1][5], 'Volume': payload[1][7]}, ignore_index=True)
+    if (time.time() - intervalStart > 60):
+        print(intervalData)
+        # Send it somewhere
+        intervalData = intervalData[0:0]
+        intervalStart = time.time()
+                                    
 
 #################################################
 desired = False
