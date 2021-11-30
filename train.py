@@ -103,12 +103,12 @@ df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='in
 # TODO: ************ LABELING ************
 labeled_data = df_5min # replace this with labeled data
 
+# split train/test/validation datasets
 labeled_data = labeled_data.iloc[(864*675):,:] # 864 = 3 days
 mask = np.random.rand(len(labeled_data)) < trainTestSplit
 labeled_data_masked = labeled_data[mask]
 valid_mask = np.random.rand(len(labeled_data_masked)) < 0.9
 
-print(labeled_data_masked.columns)
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
     data_labeled = labeled_data_masked[valid_mask],

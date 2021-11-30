@@ -37,9 +37,6 @@ class CryptoDataset(Dataset):
 		labs[1] = 2.
 		self.dataFrame.insert(len(self.features),'label',labs)
 
-
-
-		
 	def __len__(self):
 		return len(self.dataFrame)
 
