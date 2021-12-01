@@ -50,7 +50,7 @@ num_layers = 2
 input_size = 14 # number of features
 
 ##### Adjustable Parameters #####
-batch_size = 512
+batch_size = 1024
 num_epochs = 25
 learning_rate = 5e-4
 hidden_size = input_size*2
