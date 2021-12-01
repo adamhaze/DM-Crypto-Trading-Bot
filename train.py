@@ -11,9 +11,9 @@ from models import *
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import MinMaxScaler
 from indicator_funcs import *
-import mysql.connector
-from mysql.connector import Error
-from sqlalchemy import create_engine
+# import mysql.connector
+# from mysql.connector import Error
+# from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
@@ -25,28 +25,43 @@ def save_losses():
     plt.ylabel('Cross-Entropy Loss')
     plt.title('Training vs Validation Loss')
     plt.legend()
-    plt.savefig('losses.png')
+    plt.savefig(model_name + '_losses.png')
+
+
+def add_label(df): 
+    return ( ((df['Open'].shift(-1) - df['Close'].shift(-1)) / df['Open'].shift(-1)) * 100 )
+
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# set output directory for model checkpoints and loss plots
-# output_directory = 'output/'
+########################################
+##### set name for resulting model #####
+########################################
+model_name = 'rnn_best_losses_checkpoint'
+
 
 ##
 ## Set all global parameters
 ##
 trainTestSplit = 0.9
-num_classes = 3 # buy / sell / hold -- more classes than this?
+num_classes = 3 
 num_layers = 2
 input_size = 14 # number of features
 
-batch_size = 256
-num_epochs = 1
-learning_rate = 5e-5
+##### Adjustable Parameters #####
+batch_size = 512
+num_epochs = 25
+learning_rate = 5e-4
 hidden_size = input_size*2
 
-# set individual lag values
+######################################################################
+###### only mess w/ the parameters in this box ######
+
+neutral_thresh = 0.1 # % change threshold for buy/sell/hold
+ignore_days = 730 # num days to ignore @ beginning of data (2015-2016)
+
+# set individual lag values 
 lag_1min = 10
 lag_5min = 0
 lag_30min = 4
@@ -54,13 +69,14 @@ lag_1hr = 0
 lag_4hr = 2
 lag_12hr = 1
 lag_24hr = 2
+######################################################################
 
 print('batch size: {}'.format(batch_size))
 print('epochs: {}'.format(num_epochs))
 print('lr: {}'.format(learning_rate))
 print('num_layers: {}'.format(num_layers))
 print('hidden_size: {}'.format(hidden_size))
-# print('neutral thresh: {}'.format(neutral_thresh))
+print('neutral thresh: {}'.format(neutral_thresh))
 print('\n')
 print('1 minute lag: {}'.format(lag_1min))
 print('5 minute lag: {}'.format(lag_5min))
@@ -70,41 +86,70 @@ print('4 hour lag: {}'.format(lag_4hr))
 print('12 hour lag: {}'.format(lag_12hr))
 print('24 hour lag: {}'.format(lag_24hr))
 
-# Load ENV Files for SQL database
-env_vars = {} # or dict {}
-with open('src/env.txt') as f:
-    for line in f:
-        if line.startswith('#') or not line.strip():
-            continue
-        key, value = line.strip().split('=', 1)
-        env_vars[key]= value
-print(env_vars)
 
-# create sqlalchemy engine
-engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
-                       .format(user=env_vars['USER'],
-                               pw=env_vars['PASSWORD'],
-                               host=env_vars['HOST'],
-                               db=env_vars['DB']))
-cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Volume']
+########## START of SQL stuff ##########
+# Load ENV Files for SQL database
+# env_vars = {} # or dict {}
+# with open('src/env.txt') as f:
+#     for line in f:
+#         if line.startswith('#') or not line.strip():
+#             continue
+#         key, value = line.strip().split('=', 1)
+#         env_vars[key]= value
+# print(env_vars)
+
+# # create sqlalchemy engine
+# engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
+#                        .format(user=env_vars['USER'],
+#                                pw=env_vars['PASSWORD'],
+#                                host=env_vars['HOST'],
+#                                db=env_vars['DB']))
+# cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Volume']
+########## END of SQL stuff ##########
 
 # pull timeframe data
-df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
-df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
+# df_1min.to_csv('BTC_Ticker_Data_1_Min.csv')
+df_1min = pd.read_csv('BTC_Ticker_Data_1_Min.csv',index_col='index')
 
-# print('1 minute: ', df_1min.columns)
-# print('5 minute: ', df_5min.columns)
+# df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_5min.to_csv('BTC_Ticker_Data_5_Min.csv')
+df_5min = pd.read_csv('BTC_Ticker_Data_5_Min.csv',index_col='index')
 
-# TODO: ************ LABELING ************
-labeled_data = df_5min # replace this with labeled data
+# df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_30min.to_csv('BTC_Ticker_Data_30_Min.csv')
+df_30min = pd.read_csv('BTC_Ticker_Data_30_Min.csv',index_col='index')
+
+# df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_1hr.to_csv('BTC_Ticker_Data_1_Hour.csv')
+df_1hr = pd.read_csv('BTC_Ticker_Data_1_Hour.csv',index_col='index')
+
+# df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_4hr.to_csv('BTC_Ticker_Data_4_Hour.csv')
+df_4hr = pd.read_csv('BTC_Ticker_Data_4_Hour.csv',index_col='index')
+
+# df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_12hr.to_csv('BTC_Ticker_Data_12_Hour.csv')
+df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv',index_col='index')
+
+# df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+# df_24hr.to_csv('BTC_Ticker_Data_24_Hour.csv')
+df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv',index_col='index')
+
+# ************ LABELING ************
+# 0 = buy / 1 = sell / 2 = hold
+print('starting labeling...')
+labeled_data = df_5min
+labeled_data['PercentChange'] = add_label(labeled_data)
+labeled_data['label'] = np.where(labeled_data['PercentChange']> neutral_thresh, 1, 0)
+labeled_data['label'] = np.where(labeled_data['PercentChange']< -neutral_thresh, 2,labeled_data['label'] )
+del labeled_data['PercentChange']
+print('finished labeling...')
+
+# print(labeled_data.head(100))
 
 # split train/test/validation datasets
-labeled_data = labeled_data.iloc[(864*675):,:] # 864 = 3 days
+labeled_data = labeled_data.iloc[int(288*ignore_days):,:] # 864 = 3 days
 mask = np.random.rand(len(labeled_data)) < trainTestSplit
 labeled_data_masked = labeled_data[mask]
 valid_mask = np.random.rand(len(labeled_data_masked)) < 0.9
@@ -125,7 +170,8 @@ train_dataset = CryptoDataset(
     lag_1hr = lag_1hr,
     lag_4hr = lag_4hr,
     lag_12hr = lag_12hr,
-    lag_24hr = lag_24hr
+    lag_24hr = lag_24hr,
+    ignore_days = ignore_days
 )
 valid_dataset = CryptoDataset(
     data_labeled = labeled_data_masked[~valid_mask],
@@ -142,7 +188,8 @@ valid_dataset = CryptoDataset(
     lag_1hr = lag_1hr,
     lag_4hr = lag_4hr,
     lag_12hr = lag_12hr,
-    lag_24hr = lag_24hr
+    lag_24hr = lag_24hr,
+    ignore_days = ignore_days
 )
 test_dataset = CryptoDataset(
     data_labeled = labeled_data[~mask],
@@ -159,7 +206,8 @@ test_dataset = CryptoDataset(
     lag_1hr = lag_1hr,
     lag_4hr = lag_4hr,
     lag_12hr = lag_12hr,
-    lag_24hr = lag_24hr
+    lag_24hr = lag_24hr,
+    ignore_days = ignore_days
 )
 
 print('Training Data: {} time frames'.format(len(train_dataset)))
@@ -213,11 +261,12 @@ for epoch in range(num_epochs):
 
     sum_loss = 0
     for batch, (X,Y) in enumerate(train_loader):
-        print(X.shape)
+        
         X,Y = X.to(device), Y.to(device)
         # X = torch.unsqueeze(X,1).float()
         X = X.type(torch.float)
         Y = Y.type(torch.LongTensor)
+        # print(Y)
 
         # Compute forward pass
         Y_hat = model.forward(X).to(device)
@@ -232,6 +281,7 @@ for epoch in range(num_epochs):
         # optimizer.zero_grad()
 
         sum_loss = sum_loss + criterion(Y_hat, Y)
+        # print("Loss: ", sum_loss)
     
     train_losses.append(sum_loss.item()/batch)
 
@@ -256,7 +306,7 @@ for epoch in range(num_epochs):
     if valid_losses[-1] == np.array(valid_losses).min():
         checkpoint = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
         # torch.save(checkpoint, 'checkpoint_epoch_{}'.format(epoch))
-        torch.save(checkpoint, 'rnn_best_losses_checkpoint')
+        torch.save(checkpoint, model_name)
     else:
         if len(valid_losses) > np.array(valid_losses).argmin() + 50:
             print('No improvement in last 50 epochs... terminating...')
@@ -265,7 +315,7 @@ for epoch in range(num_epochs):
 # Save model after final training epoch
 # model_save = {'state_dict': model.state_dict(), 'optimizer' : optimizer.state_dict()}
 # torch.save(model_save, 'rnn_result_v5')
-# save_losses()
+save_losses()
 
 ##
 ## Testing

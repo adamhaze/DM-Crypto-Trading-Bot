@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 class CryptoDataset(Dataset):
 
-	def __init__(self, data_labeled, df_1min, df_5min, df_30min, df_1hr, df_4hr, df_12hr, df_24hr, lag_1min=0, lag_5min=0, lag_30min=0, lag_1hr=0, lag_4hr=0, lag_12hr=0, lag_24hr=0, valid=False, live=False):
+	def __init__(self, data_labeled, df_1min, df_5min, df_30min, df_1hr, df_4hr, df_12hr, df_24hr, lag_1min=0, lag_5min=0, lag_30min=0, lag_1hr=0, lag_4hr=0, lag_12hr=0, lag_24hr=0, ignore_days=0, valid=False, live=False):
 
 		self.df_1min = df_1min
 		self.df_5min = df_5min
@@ -29,13 +29,13 @@ class CryptoDataset(Dataset):
 		self.valid = valid
 		self.live = live
 		self.features = ['Unix Timestamp','Open','High','Low','Close','Volume','MA_5','MA_8','MA_10','MA_13','MA_20','MA_50','RSI','MACD','M_Signal']
-		self.lag_open = 864 # num time points to skip from beginning of data: 864 = 3 days in 5min timeframe
+		self.lag_open = int(288*ignore_days) # num time points to skip from beginning of data: 288 = 1 day in 5min timeframe
 
 		self.dataFrame = data_labeled
-		labs = [0. for i in range(len(self.dataFrame))]
-		labs[0] = 1.
-		labs[1] = 2.
-		self.dataFrame.insert(len(self.features),'label',labs)
+		# labs = [0. for i in range(len(self.dataFrame))]
+		# labs[0] = 1.
+		# labs[1] = 2.
+		# self.dataFrame.insert(len(self.features),'label',labs)
 
 	def __len__(self):
 		return len(self.dataFrame)
