@@ -11,9 +11,9 @@ from models import *
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import MinMaxScaler
 from indicator_funcs import *
-# import mysql.connector
-# from mysql.connector import Error
-# from sqlalchemy import create_engine
+import mysql.connector
+from mysql.connector import Error
+from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
@@ -89,52 +89,52 @@ print('24 hour lag: {}'.format(lag_24hr))
 
 ########## START of SQL stuff ##########
 # Load ENV Files for SQL database
-# env_vars = {} # or dict {}
-# with open('src/env.txt') as f:
-#     for line in f:
-#         if line.startswith('#') or not line.strip():
-#             continue
-#         key, value = line.strip().split('=', 1)
-#         env_vars[key]= value
-# print(env_vars)
+env_vars = {} # or dict {}
+with open('src/env.txt') as f:
+    for line in f:
+        if line.startswith('#') or not line.strip():
+            continue
+        key, value = line.strip().split('=', 1)
+        env_vars[key]= value
+print(env_vars)
 
-# # create sqlalchemy engine
-# engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
-#                        .format(user=env_vars['USER'],
-#                                pw=env_vars['PASSWORD'],
-#                                host=env_vars['HOST'],
-#                                db=env_vars['DB']))
-# cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Volume']
+# create sqlalchemy engine
+engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
+                       .format(user=env_vars['USER'],
+                               pw=env_vars['PASSWORD'],
+                               host=env_vars['HOST'],
+                               db=env_vars['DB']))
+cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Volume']
 ########## END of SQL stuff ##########
 
 # pull timeframe data
-# df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
-# df_1min.to_csv('BTC_Ticker_Data_1_Min.csv')
-df_1min = pd.read_csv('BTC_Ticker_Data_1_Min.csv',index_col='index')
+df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
+df_1min.to_csv('BTC_Ticker_Data_1_Min.csv')
+# df_1min = pd.read_csv('BTC_Ticker_Data_1_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_5min.to_csv('BTC_Ticker_Data_5_Min.csv')
-df_5min = pd.read_csv('BTC_Ticker_Data_5_Min.csv',index_col='index')
+df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_5min.to_csv('BTC_Ticker_Data_5_Min.csv')
+# df_5min = pd.read_csv('BTC_Ticker_Data_5_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_30min.to_csv('BTC_Ticker_Data_30_Min.csv')
-df_30min = pd.read_csv('BTC_Ticker_Data_30_Min.csv',index_col='index')
+df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_30min.to_csv('BTC_Ticker_Data_30_Min.csv')
+# df_30min = pd.read_csv('BTC_Ticker_Data_30_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_1hr.to_csv('BTC_Ticker_Data_1_Hour.csv')
-df_1hr = pd.read_csv('BTC_Ticker_Data_1_Hour.csv',index_col='index')
+df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_1hr.to_csv('BTC_Ticker_Data_1_Hour.csv')
+# df_1hr = pd.read_csv('BTC_Ticker_Data_1_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_4hr.to_csv('BTC_Ticker_Data_4_Hour.csv')
-df_4hr = pd.read_csv('BTC_Ticker_Data_4_Hour.csv',index_col='index')
+df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_4hr.to_csv('BTC_Ticker_Data_4_Hour.csv')
+# df_4hr = pd.read_csv('BTC_Ticker_Data_4_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_12hr.to_csv('BTC_Ticker_Data_12_Hour.csv')
-df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv',index_col='index')
+df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_12hr.to_csv('BTC_Ticker_Data_12_Hour.csv')
+# df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-# df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-# df_24hr.to_csv('BTC_Ticker_Data_24_Hour.csv')
-df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv',index_col='index')
+df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
+df_24hr.to_csv('BTC_Ticker_Data_24_Hour.csv')
+# df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
 # ************ LABELING ************
 # 0 = buy / 1 = sell / 2 = hold
