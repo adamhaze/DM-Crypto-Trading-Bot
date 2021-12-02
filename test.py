@@ -52,3 +52,20 @@ for X,Y in loader:
     outputs = model(X)
 
     _, predicted = torch.max(outputs.data, 1)
+
+# make array of predicted values
+# live_df = dataframe of only new 5 minute increment data
+def eval_trading_strategy(predicted_arr, live_df):
+
+    for i,elem in enumerate(predicted):
+        if elem == 0.0:
+            # netural
+            pass
+        elif elem == 1.0:
+            # buy
+            pass
+        else:
+            # sell
+            pass
+
+        live_df.iloc[i,4] # get close price
