@@ -38,7 +38,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ########################################
 ##### set name for resulting model #####
 ########################################
-model_name = 'rnn_best_losses_checkpoint'
+model_name = 'rnn_best_losses_checkpoint_v2'
 
 
 ##
@@ -58,19 +58,20 @@ hidden_size = input_size*2
 ######################################################################
 ###### only mess w/ the parameters in this box ######
 
-neutral_thresh = 0.1 # % change threshold for buy/sell/hold
+neutral_thresh = 0.075 # % change threshold for buy/sell/hold
 ignore_days = 730 # num days to ignore @ beginning of data (2015-2016)
 
 # set individual lag values 
-lag_1min = 10
+lag_1min = 5
 lag_5min = 0
 lag_30min = 4
-lag_1hr = 0
+lag_1hr = 2
 lag_4hr = 2
 lag_12hr = 1
-lag_24hr = 2
+lag_24hr = 1
 ######################################################################
 
+print('model name: {}'.format(model_name))
 print('batch size: {}'.format(batch_size))
 print('epochs: {}'.format(num_epochs))
 print('lr: {}'.format(learning_rate))
@@ -108,51 +109,50 @@ cols = ['index','Unix Timestamp','Date','Symbol','Open','High','Low','Close','Vo
 ########## END of SQL stuff ##########
 
 # pull timeframe data
-df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine, index_col='index').drop(['Date','Symbol'],axis=1)
-df_1min.to_csv('BTC_Ticker_Data_1_Min.csv')
-# df_1min = pd.read_csv('BTC_Ticker_Data_1_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_1min = pd.read_sql_table('BTC_Ticker_Data', con=engine).drop(['Date','Symbol'],axis=1)
+# df_1min.to_csv('BTC_Ticker_Data_1_Min.csv')
+df_1min = pd.read_csv('BTC_Ticker_Data_1_Min.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_5min.to_csv('BTC_Ticker_Data_5_Min.csv')
-# df_5min = pd.read_csv('BTC_Ticker_Data_5_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_5min = pd.read_sql_table('BTC_Ticker_Data_5_Min', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_5min.to_csv('BTC_Ticker_Data_5_Min.csv')
+df_5min = pd.read_csv('BTC_Ticker_Data_5_Min.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_30min.to_csv('BTC_Ticker_Data_30_Min.csv')
-# df_30min = pd.read_csv('BTC_Ticker_Data_30_Min.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_30min = pd.read_sql_table('BTC_Ticker_Data_30_Min', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_30min.to_csv('BTC_Ticker_Data_30_Min.csv')
+df_30min = pd.read_csv('BTC_Ticker_Data_30_Min.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_1hr.to_csv('BTC_Ticker_Data_1_Hour.csv')
-# df_1hr = pd.read_csv('BTC_Ticker_Data_1_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_1hr = pd.read_sql_table('BTC_Ticker_Data_1_Hour', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_1hr.to_csv('BTC_Ticker_Data_1_Hour.csv')
+df_1hr = pd.read_csv('BTC_Ticker_Data_1_Hour.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_4hr.to_csv('BTC_Ticker_Data_4_Hour.csv')
-# df_4hr = pd.read_csv('BTC_Ticker_Data_4_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_4hr = pd.read_sql_table('BTC_Ticker_Data_4_Hour', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_4hr.to_csv('BTC_Ticker_Data_4_Hour.csv')
+df_4hr = pd.read_csv('BTC_Ticker_Data_4_Hour.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_12hr.to_csv('BTC_Ticker_Data_12_Hour.csv')
-# df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_12hr = pd.read_sql_table('BTC_Ticker_Data_12_Hour', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_12hr.to_csv('BTC_Ticker_Data_12_Hour.csv')
+df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
-df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine, index_col='index').drop(['Date','Symbol','Time Frame'],axis=1)
-df_24hr.to_csv('BTC_Ticker_Data_24_Hour.csv')
-# df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv',index_col='index') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
+# df_24hr = pd.read_sql_table('BTC_Ticker_Data_24_Hour', con=engine).drop(['Date','Symbol','Time Frame'],axis=1)
+# df_24hr.to_csv('BTC_Ticker_Data_24_Hour.csv')
+df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
 # ************ LABELING ************
 # 0 = buy / 1 = sell / 2 = hold
-print('starting labeling...')
 labeled_data = df_5min
 labeled_data['PercentChange'] = add_label(labeled_data)
 labeled_data['label'] = np.where(labeled_data['PercentChange']> neutral_thresh, 1, 0)
 labeled_data['label'] = np.where(labeled_data['PercentChange']< -neutral_thresh, 2,labeled_data['label'] )
 del labeled_data['PercentChange']
-print('finished labeling...')
 
-# print(labeled_data.head(100))
 
 # split train/test/validation datasets
-labeled_data = labeled_data.iloc[int(288*ignore_days):,:] # 864 = 3 days
+labeled_data = labeled_data.iloc[int(288*ignore_days):,:] 
 mask = np.random.rand(len(labeled_data)) < trainTestSplit
+np.random.shuffle(mask)
 labeled_data_masked = labeled_data[mask]
 valid_mask = np.random.rand(len(labeled_data_masked)) < 0.9
+
 
 print('~~~~~~~~~~~~ Initializing Dataset ~~~~~~~~~~~~')
 train_dataset = CryptoDataset(
@@ -219,16 +219,22 @@ train_loader = DataLoader(
     train_dataset,
     batch_size=batch_size,
     shuffle=False
+    # num_workers = 8,
+    # pin_memory = True
 )
 valid_loader = DataLoader(
     valid_dataset,
     batch_size=1,
     shuffle=False
+    # num_workers = 8,
+    # pin_memory = True
 )
 test_loader = DataLoader(
     test_dataset,
     batch_size=batch_size,
     shuffle=False
+    # num_workers = 8,
+    # pin_memory = True
 )
 
 
@@ -308,8 +314,8 @@ for epoch in range(num_epochs):
         # torch.save(checkpoint, 'checkpoint_epoch_{}'.format(epoch))
         torch.save(checkpoint, model_name)
     else:
-        if len(valid_losses) > np.array(valid_losses).argmin() + 50:
-            print('No improvement in last 50 epochs... terminating...')
+        if len(valid_losses) > np.array(valid_losses).argmin() + 10:
+            print('No improvement in last 10 epochs... terminating...')
             break
 
 # Save model after final training epoch
