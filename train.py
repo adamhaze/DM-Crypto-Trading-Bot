@@ -29,7 +29,8 @@ def save_losses():
 
 
 def add_label(df): 
-    return ( ((df['Open'].shift(-1) - df['Close'].shift(-1)) / df['Open'].shift(-1)) * 100 )
+    # return ( ((df['Open'].shift(-1) - df['Close'].shift(-1)) / df['Open'].shift(-1)) * 100 )
+    return ( ((df['Close'].shift(-1) - df['Open'].shift(-1)) / df['Open'].shift(-1)) * 100 )
 
 
 # device configuration
@@ -38,7 +39,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ########################################
 ##### set name for resulting model #####
 ########################################
-model_name = 'rnn_best_losses_checkpoint_v2'
+model_name = 'rnn_best_losses_checkpoint'
 
 
 ##
@@ -62,13 +63,13 @@ neutral_thresh = 0.075 # % change threshold for buy/sell/hold
 ignore_days = 730 # num days to ignore @ beginning of data (2015-2016)
 
 # set individual lag values 
-lag_1min = 5
+lag_1min = 10
 lag_5min = 0
 lag_30min = 4
-lag_1hr = 2
+lag_1hr = 0
 lag_4hr = 2
 lag_12hr = 1
-lag_24hr = 1
+lag_24hr = 2
 ######################################################################
 
 print('model name: {}'.format(model_name))
@@ -138,7 +139,7 @@ df_12hr = pd.read_csv('BTC_Ticker_Data_12_Hour.csv') # IMPORTANT: uncomment this
 df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv') # IMPORTANT: uncomment this line, and comment out 2 lines above once you have data as csv file
 
 # ************ LABELING ************
-# 0 = buy / 1 = sell / 2 = hold
+# 0 = hold / 1 = buy / 2 = sell
 labeled_data = df_5min
 labeled_data['PercentChange'] = add_label(labeled_data)
 labeled_data['label'] = np.where(labeled_data['PercentChange']> neutral_thresh, 1, 0)
