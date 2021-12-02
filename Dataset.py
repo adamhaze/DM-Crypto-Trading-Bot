@@ -83,7 +83,7 @@ class CryptoDataset(Dataset):
 			# relevant_data_points = relevant_data_points.append(temp_df)
 
 		relevant_data_points = relevant_data_points.drop(['Unix Timestamp'], axis=1)
-		# relevant_data = pd.concat(ls).drop(['Unix Timestamp'], axis=1)
+		relevant_data_points = relevant_data_points[::-1]
 		data_tensor = torch.from_numpy(np.array(relevant_data_points, dtype=float))
 
 		label = self.dataFrame.iloc[idx,-1]
