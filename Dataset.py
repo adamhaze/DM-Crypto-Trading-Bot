@@ -42,10 +42,10 @@ class CryptoDataset(Dataset):
 
 	def __getitem__(self, idx):
 
-		idx = self.dataFrame.iloc[idx,0]
 		# current_unix = self.dataFrame.iloc[idx,0]
 		relevant_data_points = pd.DataFrame([],columns=self.features)
 		relevant_data_points = relevant_data_points.append(self.dataFrame.iloc[idx,:len(self.features)+1])
+		idx = self.dataFrame.iloc[idx,0]
 
 		if self.lag_1min != 0:
 			idx_1min = int((idx + self.lag_open) * 5)
