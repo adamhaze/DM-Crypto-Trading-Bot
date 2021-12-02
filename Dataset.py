@@ -43,8 +43,9 @@ class CryptoDataset(Dataset):
 	def __getitem__(self, idx):
 
 		# current_unix = self.dataFrame.iloc[idx,0]
+		current_idx = idx
 		relevant_data_points = pd.DataFrame([],columns=self.features)
-		relevant_data_points = relevant_data_points.append(self.dataFrame.iloc[idx,:len(self.features)+1])
+		relevant_data_points = relevant_data_points.append(self.dataFrame.iloc[current_idx,:len(self.features)+1])
 		idx = self.dataFrame.iloc[idx,0]
 
 		if self.lag_1min != 0:
@@ -87,7 +88,7 @@ class CryptoDataset(Dataset):
 		relevant_data_points = relevant_data_points[::-1]
 		data_tensor = torch.from_numpy(np.array(relevant_data_points, dtype=float))
 
-		label = self.dataFrame.iloc[idx,-1]
+		label = self.dataFrame.iloc[current_idx,-1]
 		return (data_tensor, label)
 
 	def get_labels(self):
