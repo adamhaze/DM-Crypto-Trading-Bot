@@ -51,9 +51,9 @@ num_layers = 2
 input_size = 14 # number of features
 
 ##### Adjustable Parameters #####
-batch_size = 1024
+batch_size = 512
 num_epochs = 25
-learning_rate = 5e-4
+learning_rate = 5e-3
 hidden_size = input_size*2
 
 ######################################################################
@@ -65,11 +65,11 @@ ignore_days = 730 # num days to ignore @ beginning of data (2015-2016)
 # set individual lag values 
 lag_1min = 10
 lag_5min = 0
-lag_30min = 4
+lag_30min = 1
 lag_1hr = 0
-lag_4hr = 2
-lag_12hr = 1
-lag_24hr = 2
+lag_4hr = 0
+lag_12hr = 0
+lag_24hr = 1
 ######################################################################
 
 print('model name: {}'.format(model_name))
@@ -257,6 +257,7 @@ with warnings.catch_warnings():
     class_wts = torch.from_numpy(class_wts).float()
     criterion = torch.nn.CrossEntropyLoss(weight=class_wts)
     optimizer = optim.Adam(model.parameters(),lr=learning_rate)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
 
 print('~~~~~~~~~~~~ Training Model ~~~~~~~~~~~~')
@@ -291,6 +292,7 @@ for epoch in range(num_epochs):
         # print("Loss: ", sum_loss)
     
     train_losses.append(sum_loss.item()/batch)
+    scheduler.step()
 
     #Valid
     loss = 0
