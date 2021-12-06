@@ -4,3 +4,4 @@
 .ipynb_checkpoints
 env.txt
 Master_Data_File.csv
+*.csv
