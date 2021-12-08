@@ -9,36 +9,39 @@ from models import *
 from indicator_funcs import *
 from sklearn.metrics import confusion_matrix
 import warnings
+import matplotlib.pyplot as plt
+
+# warnings.filterwarnings("ignore", category=SettingWithCopyWarning)
 
 def add_label(df): 
-    return ( ((df['Open'].shift(-1) - df['Close'].shift(-1)) / df['Open'].shift(-1)) * 100 )
+    return ( ((df['Close'].shift(-1) - df['Open'].shift(-1)) / df['Open'].shift(-1)) * 100 )
 
 # model params
 num_classes = 3 
-num_layers = 2
+num_layers = 4
 input_size = 14 # number of features
-hidden_size = input_size*2
+hidden_size = 500
 
-neutral_thresh = 0.1 # % change threshold for buy/sell/hold
+neutral_thresh = 0.075 # % change threshold for buy/sell/hold
 
 # set individual lag values 
-lag_1min = 10
-lag_5min = 0
-lag_30min = 4
+lag_1min = 0
+lag_5min = 1
+lag_30min = 0
 lag_1hr = 0
-lag_4hr = 2
-lag_12hr = 1
-lag_24hr = 2
+lag_4hr = 0
+lag_12hr = 0
+lag_24hr = 0
 
 # device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore")
+
+
 
 model = CryptoRNN(input_size, hidden_size, num_layers, num_classes).to(device)
 
-model_saved = '../models/rnn_47%'
+model_saved = '../models/rnn_48%_v2'
 # model_saved = 'rnn_best_losses_checkpoint_v2'
 model_state = torch.load(model_saved)
 model.load_state_dict(model_state['state_dict'])
@@ -89,15 +92,18 @@ test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 print('~~~~~~~~~~~~ Testing Model Performance ~~~~~~~~~~~~')
 y_true, y_pred = [],[]
+open_arr,close_arr = [],[]
 with torch.no_grad():
     n_correct = 0
     n_samples = 0
     for X, Y in test_loader:
+        open_arr.append(X[0][0][0].numpy())
+        close_arr.append(X[0][0][3].numpy())
         y_true.append(Y.numpy())
         X,Y = X.to(device), Y.to(device)
         # X = torch.unsqueeze(X,1).float()
         X = X.type(torch.float)
-        outputs = model.forward(X)
+        outputs = model(X)
         # print(outputs)
 
         _, predicted = torch.max(outputs.data, 1)
@@ -124,21 +130,59 @@ print(df_cm)
 print('\n')
 
 
-"""
-# make array of predicted values
-# live_df = dataframe of only new 5 minute increment data
-def eval_trading_strategy(predicted_arr, live_df):
+# """
+# open = [5,8,10,6,4,5]
+# close = [8,10,6,4,5,3]
+# prediction = [1,0,0,1,2]
+def eval_trading_strategy(pred, open, close):
+    investment, shares = 0,0
+    curr_money = 100000
+    portfolio_tracker = [curr_money]
 
-    for i,elem in enumerate(predicted):
-        if elem == 0.0:
-            # netural
-            pass
-        elif elem == 1.0:
-            # buy
-            pass
-        else:
-            # sell
-            pass
+    print('Initial Investment: ${}'.format(curr_money))
 
-        live_df.iloc[i,4] # get close price
-"""
+    for i,elem in enumerate(pred):
+
+        if elem == 0:
+            if investment == 0: continue
+            change = close[i+1] - open[i+1]
+            investment += (shares * change)
+
+        elif elem == 1:
+            change = close[i+1] - open[i+1]
+            if curr_money == 0:
+                investment += (shares * change)
+            else:
+                shares = curr_money / close[i]
+                investment = shares * close[i]
+
+                investment += (shares * change)
+                curr_money = 0
+
+        elif elem == 2:
+            if investment == 0: continue
+            else:
+                curr_money = (close[i] * shares)
+                investment, shares = 0,0
+        
+        else: return 0
+
+        tot = investment + curr_money
+        portfolio_tracker.append(tot)
+        print('Current Portfolio Value: ${}'.format(tot))
+
+    return portfolio_tracker
+
+
+
+portfolio_tracker = eval_trading_strategy(y_pred[:-1], open_arr, close_arr)
+
+fig, ax = plt.subplots(figsize=(10,5))
+x = [i for i in range(len(portfolio_tracker))]
+ax.plot(x,portfolio_tracker)
+ax.set_xlabel('Time Periods (5min)')
+ax.set_ylabel('Investment Value ($)')
+ax.set_title('Result of Model Trading Strategy with $100,000 initial investment')
+# plt.legend()
+fig.savefig('model_trading_strategy.png')
+# """
