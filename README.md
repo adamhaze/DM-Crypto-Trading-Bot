@@ -18,3 +18,9 @@ In this file we set all our model hyperparameters, load all our data into the ne
 Here we load our best performing model, along with previously unseen data that we use to test our models performance, as well as evaluate the trading strategy based on an initial investment and our model-predicted buy/sell/hold states.
 
 ``websocket_test.py``
+This is the file we used to begin experimenting with the Kraken websocket API
+
+``src/*.ipynb``
+This is an accumulation of files that were used to set up the SQL database, debug any issues with the database, and includes methods necessary to connect to the database from your local machine. These files also include all relevant commands for pushing and pulling data to and from the database.
+
+``LiveData.ipynb``
