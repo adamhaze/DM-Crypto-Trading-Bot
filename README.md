@@ -12,7 +12,9 @@ This function contains the indicators functions we used to better predict buy, s
 Here we define `class CryptoRNN` as our model for this project. This model leverages the default PyTorch RNN, but we developed an architecture that best suits our problem space. The most important part of this class is the `forward` method which defines specifically how we execute a forward pass through our RNN.
 
 ``train.py``
+In this file we set all our model hyperparameters, load all our data into the necessary format, and conduct all model training. We split the data into train, validation, and test sets in order to provide validation loss values throughout training, and ultimately test the final model on a small held out test dataset to obtain an accuracy measure. The best model, found during training, is then saved, along with a plot of the train vs validation loss over all training epochs.
 
 ``test.py``
+Here we load our best performing model, along with previously unseen data that we use to test our models performance, as well as evaluate the trading strategy based on an initial investment and our model-predicted buy/sell/hold states.
 
 ``websocket_test.py``
