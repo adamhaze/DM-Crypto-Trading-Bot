@@ -39,7 +39,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ########################################
 ##### set name for resulting model #####
 ########################################
-model_name = 'rnn_best_losses_checkpoint'
+model_name = 'rnn_best_losses_checkpoint_v3'
 
 
 ##
@@ -47,29 +47,27 @@ model_name = 'rnn_best_losses_checkpoint'
 ##
 trainTestSplit = 0.9
 num_classes = 3 
-num_layers = 2
+num_layers = 4
 input_size = 14 # number of features
 
+######################################################################
 ##### Adjustable Parameters #####
 batch_size = 512
-num_epochs = 25
-learning_rate = 5e-3
-hidden_size = input_size*2
+num_epochs = 50
+learning_rate = 8e-5
+hidden_size = 500
 
-######################################################################
-###### only mess w/ the parameters in this box ######
-
-neutral_thresh = 0.075 # % change threshold for buy/sell/hold
+neutral_thresh = 0.08 # % change threshold for buy/sell/hold
 ignore_days = 730 # num days to ignore @ beginning of data (2015-2016)
 
 # set individual lag values 
-lag_1min = 10
-lag_5min = 0
-lag_30min = 1
+lag_1min = 0
+lag_5min = 2
+lag_30min = 2
 lag_1hr = 0
 lag_4hr = 0
 lag_12hr = 0
-lag_24hr = 1
+lag_24hr = 0
 ######################################################################
 
 print('model name: {}'.format(model_name))
@@ -219,23 +217,17 @@ print('~~~~~~~~~~~~ Initializing DataLoader ~~~~~~~~~~~~')
 train_loader = DataLoader(
     train_dataset,
     batch_size=batch_size,
-    shuffle=False
-    # num_workers = 8,
-    # pin_memory = True
+    shuffle=True
 )
 valid_loader = DataLoader(
     valid_dataset,
     batch_size=1,
-    shuffle=False
-    # num_workers = 8,
-    # pin_memory = True
+    shuffle=True
 )
 test_loader = DataLoader(
     test_dataset,
     batch_size=batch_size,
-    shuffle=False
-    # num_workers = 8,
-    # pin_memory = True
+    shuffle=True
 )
 
 
@@ -317,8 +309,8 @@ for epoch in range(num_epochs):
         # torch.save(checkpoint, 'checkpoint_epoch_{}'.format(epoch))
         torch.save(checkpoint, model_name)
     else:
-        if len(valid_losses) > np.array(valid_losses).argmin() + 10:
-            print('No improvement in last 10 epochs... terminating...')
+        if len(valid_losses) > np.array(valid_losses).argmin() + 20:
+            print('No improvement in last 20 epochs... terminating...')
             break
 
 # Save model after final training epoch

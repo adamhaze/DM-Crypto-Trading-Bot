@@ -22,12 +22,12 @@ num_layers = 4
 input_size = 14 # number of features
 hidden_size = 500
 
-neutral_thresh = 0.075 # % change threshold for buy/sell/hold
+neutral_thresh = 0.08 # % change threshold for buy/sell/hold
 
 # set individual lag values 
 lag_1min = 0
-lag_5min = 1
-lag_30min = 0
+lag_5min = 2
+lag_30min = 2
 lag_1hr = 0
 lag_4hr = 0
 lag_12hr = 0
@@ -41,7 +41,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = CryptoRNN(input_size, hidden_size, num_layers, num_classes).to(device)
 
-model_saved = '../models/rnn_48%_v2'
+model_saved = '../models/rnn_49%'
 # model_saved = 'rnn_best_losses_checkpoint_v2'
 model_state = torch.load(model_saved)
 model.load_state_dict(model_state['state_dict'])
@@ -62,13 +62,16 @@ df_24hr = pd.read_csv('BTC_Ticker_Data_24_Hour.csv')
 # next: label new data in test.py
 # only the new data gets passed into test_dataset and evaluated
 # Note: for now we could just focus on collecting and labeling 5min interval data
-days = 10
+days = 45
 ignore_days = 3
-labeled_data = df_5min.iloc[-int(288*days):,:]
+labeled_data = df_5min.iloc[-int(288*days):-int(288*35),:]
+# labeled_data = df_5min.iloc[-int(288*days):,:]
 labeled_data['PercentChange'] = add_label(labeled_data)
 labeled_data['label'] = np.where(labeled_data['PercentChange']> neutral_thresh, 1, 0)
 labeled_data['label'] = np.where(labeled_data['PercentChange']< -neutral_thresh, 2,labeled_data['label'] )
 del labeled_data['PercentChange']
+
+print(labeled_data.head())
 
 test_dataset = CryptoDataset(
     data_labeled = labeled_data,
@@ -130,10 +133,9 @@ print(df_cm)
 print('\n')
 
 
-# """
-# open = [5,8,10,6,4,5]
-# close = [8,10,6,4,5,3]
-# prediction = [1,0,0,1,2]
+##
+## Model Profitability Evaluation
+##
 def eval_trading_strategy(pred, open, close):
     investment, shares = 0,0
     curr_money = 100000
@@ -144,7 +146,7 @@ def eval_trading_strategy(pred, open, close):
     for i,elem in enumerate(pred):
 
         if elem == 0:
-            if investment == 0: continue
+            if investment == 0: pass
             change = close[i+1] - open[i+1]
             investment += (shares * change)
 
@@ -160,7 +162,7 @@ def eval_trading_strategy(pred, open, close):
                 curr_money = 0
 
         elif elem == 2:
-            if investment == 0: continue
+            if investment == 0: pass
             else:
                 curr_money = (close[i] * shares)
                 investment, shares = 0,0
@@ -169,7 +171,7 @@ def eval_trading_strategy(pred, open, close):
 
         tot = investment + curr_money
         portfolio_tracker.append(tot)
-        print('Current Portfolio Value: ${}'.format(tot))
+    print('Current Portfolio Value: ${}'.format(tot))
 
     return portfolio_tracker
 
@@ -186,3 +188,26 @@ ax.set_title('Result of Model Trading Strategy with $100,000 initial investment'
 # plt.legend()
 fig.savefig('model_trading_strategy.png')
 # """
+
+"""
+# function designed to take in real-time data and make real-time predictions
+def predict_real_time(arr):
+
+    current_point = arr[0]
+    lag5_pt1 = arr[1]
+    lag5_pt2 = arr[2]
+    lag30_pt1 = arr[3]
+    lag30_pt2 = arr[4]
+
+    test_dataset = LiveData(current_point, lag5_pt1, lag5_pt2, lag30_pt1, lag30_pt2)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+    for X, Y in test_loader:
+
+        X,Y = X.to(device), Y.to(device)
+        X = X.type(torch.float)
+        outputs = model(X)
+
+        _, predicted = torch.max(outputs.data, 1)
+        return predicted
+"""
