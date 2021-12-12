@@ -101,3 +101,23 @@ class CryptoDataset(Dataset):
 
 
 
+class LiveData(Dataset):
+
+	def __init__(self, current_point, lag5_pt1, lag5_pt2, lag30_pt1, lag30_pt2):
+
+		self.features = ['index','Unix Timestamp','Open','High','Low','Close','Volume','MA_5','MA_8','MA_10','MA_13','MA_20','MA_50','RSI','MACD','M_Signal']
+		relevant_data_points = pd.DataFrame([],columns=self.features)
+		relevant_data_points = relevant_data_points.append(current_point)
+		relevant_data_points = relevant_data_points.append(lag5_pt1)
+		relevant_data_points = relevant_data_points.append(lag5_pt2)
+		relevant_data_points = relevant_data_points.append(lag30_pt1)
+		relevant_data_points = relevant_data_points.append(lag30_pt2)
+		relevant_data_points = relevant_data_points.drop(['index','Unix Timestamp'], axis=1)
+		relevant_data_points = relevant_data_points[::-1]
+
+		self.data = relevant_data_points
+
+	def __len__(self):
+		return len(self.data)
+	def __getitem__(self, idx):
+		return (self.data, 0)

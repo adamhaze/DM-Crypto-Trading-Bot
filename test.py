@@ -41,7 +41,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = CryptoRNN(input_size, hidden_size, num_layers, num_classes).to(device)
 
-model_saved = '../models/rnn_49%'
+model_saved = '../models/bitcoin_rnn_model'
 # model_saved = 'rnn_best_losses_checkpoint_v2'
 model_state = torch.load(model_saved)
 model.load_state_dict(model_state['state_dict'])
