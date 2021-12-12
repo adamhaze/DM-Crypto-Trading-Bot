@@ -32,10 +32,6 @@ class CryptoDataset(Dataset):
 		self.lag_open = int(288*ignore_days) # num time points to skip from beginning of data: 288 = 1 day in 5min timeframe
 
 		self.dataFrame = data_labeled
-		# labs = [0. for i in range(len(self.dataFrame))]
-		# labs[0] = 1.
-		# labs[1] = 2.
-		# self.dataFrame.insert(len(self.features),'label',labs)
 
 	def __len__(self):
 		return len(self.dataFrame)
@@ -57,7 +53,7 @@ class CryptoDataset(Dataset):
 		if self.lag_5min != 0:
 			# idx_5min = idx+self.lag_open
 			idx_5min = idx
-			relevant_data_points = relevant_data_points.append(self.df_5min.iloc[idx_5min-self.lag_5min:idx_5min])
+			relevant_data_points = relevant_data_points.append(self.df_5min.iloc[idx_5min-self.lag_5min:idx_5min].drop('label',axis=1))
 			# temp_df = self.df_5min[self.df_5min['Unix Timestamp'] <= current_unix].iloc[-self.lag_5min:]
 			# relevant_data_points = relevant_data_points.append(temp_df)
 		if self.lag_30min != 0:
@@ -92,7 +88,7 @@ class CryptoDataset(Dataset):
 			# relevant_data_points = relevant_data_points.append(temp_df)
 		relevant_data_points = relevant_data_points.drop(['index','Unix Timestamp'], axis=1)
 		relevant_data_points = relevant_data_points[::-1]
-		# print(len(relevant_data_points))
+		# print(relevant_data_points.head())
 		data_tensor = torch.from_numpy(np.array(relevant_data_points, dtype=float))
 
 		label = self.dataFrame.iloc[current_idx,-1]
