@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.modules import dropout
 from torch.utils.data import DataLoader
 
 
